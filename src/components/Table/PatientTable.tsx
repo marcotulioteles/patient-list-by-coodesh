@@ -1,4 +1,5 @@
 import {
+  Button,
   Flex,
   Table,
   Thead,
@@ -10,18 +11,19 @@ import {
   Menu,
   MenuList,
   MenuItem,
-  IconButton,
-  Switch
-} from '@chakra-ui/react'
+  IconButton} from '@chakra-ui/react'
+import { useContext } from 'react'
 
 import { FaFilter } from 'react-icons/fa'
+import { PatientsContext } from '../../contexts/PatientsContext'
 
 interface PatientTable {
   rowsPatientTable: TableBodyProps
-  handleGenderFilter: () => void;
 }
 
-export function PatientTable({ rowsPatientTable, handleGenderFilter }: PatientTable) {
+export function PatientTable({ rowsPatientTable }: PatientTable) {
+  const { setFilteredGender } = useContext(PatientsContext)
+
   return (
     <Flex
       width="1120px"
@@ -63,18 +65,15 @@ export function PatientTable({ rowsPatientTable, handleGenderFilter }: PatientTa
                 Gender
                 <Menu>
                   <MenuButton as={IconButton} icon={<FaFilter/>} variant="solid" colorScheme="teal"/>
-                  <MenuList width="25px">
+                  <MenuList width="25px" display="flex" flexDirection="column" align="center">
                     <MenuItem justifyContent="space-between">
-                      All
-                      <Switch size="md" defaultIsChecked/>
+                      <Button colorScheme="teal" onClick={() => {setFilteredGender("")}}>All</Button>
                     </MenuItem>
                     <MenuItem justifyContent="space-between">
-                      Male
-                      <Switch size="md"/>
+                      <Button colorScheme="teal" onClick={() => {setFilteredGender("male")}}>Male</Button>
                     </MenuItem>
                     <MenuItem justifyContent="space-between">
-                      Female
-                      <Switch size="md"/>
+                      <Button colorScheme="teal" onClick={() => {setFilteredGender("female")}}>Female</Button>
                     </MenuItem>
                   </MenuList>
                 </Menu>

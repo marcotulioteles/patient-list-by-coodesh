@@ -50,32 +50,39 @@ export interface PatientsData {
   picture: PictureData
 }
 
-type PatientsDataProps = {
-  results: PatientsData[]
-}
-
 interface PatientsProviderProps {
   children: ReactNode
 }
 
 interface PatientsContextData {
-  patients: PatientsDataProps;
+  patients: PatientsData[];
   isLoading: boolean;
   setIsLoading: React.Dispatch<SetStateAction<boolean>>
+  page: number;
+  setPage: React.Dispatch<SetStateAction<number>>
+  filteredGender: string;
+  setFilteredGender: React.Dispatch<SetStateAction<string>>
 }
 
 export const PatientsContext = createContext({} as PatientsContextData);
 
 export function PatientsProvider({ children }: PatientsProviderProps) {
-  const [patients, setPatients] = useState<PatientsDataProps>()
+  const [patients, setPatients] = useState<PatientsData[]>([])
+  // const [fetchedPatients, setFetchedPatients] = useState<PatientsData[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [page, setPage] = useState(5)
+  const [filteredGender, setFilteredGender] = useState<string>("")
 
   useEffect(() => {
     const loadPatients = async () => {
       try {
-        const response = await api.get("?page=5&results=50&seed=abc&exc=coordinates, timezone, login, registered")
-        const data = response.data
-        setPatients(data)
+        const response = await api.get(`?page=${page}&results=10&seed=abc&exc=coordinates, timezone, login, registered`)
+        const data = response.data.results
+        const finalArray = [...patients, ...data]
+         
+        setPatients(finalArray.map(element => JSON.stringify(element)).reduce((unique, item) => {
+          return unique.includes(item) ? unique : [...unique, item]
+        }, []).map(element => JSON.parse(element)))
       } catch (error) {
         console.log(error)
       } finally {
@@ -83,10 +90,11 @@ export function PatientsProvider({ children }: PatientsProviderProps) {
       }
     }
     loadPatients()
-  }, [isLoading])
+    console.log(patients)
+  }, [isLoading, page])
 
   return (
-    <PatientsContext.Provider value={{ patients, isLoading, setIsLoading }}>
+    <PatientsContext.Provider value={{ patients, isLoading, setIsLoading, page, setPage, filteredGender, setFilteredGender }}>
       {children}
     </PatientsContext.Provider>
   )

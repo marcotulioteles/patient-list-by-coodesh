@@ -1,15 +1,12 @@
 import { Button, Flex, Icon, Input, Text, useDisclosure } from '@chakra-ui/react';
 import { ChangeEvent, useContext, useState, useEffect } from 'react';
-
 import { Header } from '../components/Header/Header'
 import { Loading } from '../components/Loading';
 import { PatientTable } from '../components/Table/PatientTable';
 import { ModalPatient } from '../components/Modal/Modal';
 import { PatientsContext } from '../contexts/PatientsContext';
 import { PatientTableRows } from '../components/Table/PatientTableRows';
-
 import useDebounce from '../hooks/useDebounce';
-
 import { IoReloadOutline } from 'react-icons/io5'
 import { RiUserSearchFill } from 'react-icons/ri'
 import { TiDocumentText } from 'react-icons/ti'
@@ -17,9 +14,7 @@ import { TiDocumentText } from 'react-icons/ti'
 export default function Home() {
   const [searchedValue, setSearchedValue] = useState<string>("")
   const [isSearching, setIsSearching] = useState(false)
-  const [filteredGender, setFilteredGender] = useState<string>("")
-
-  const { patients, isLoading } = useContext(PatientsContext)
+  const { patients, isLoading ,filteredGender, page, setPage } = useContext(PatientsContext)
   const { isOpen, onOpen, onClose } = useDisclosure()
 
   const debouncedValue = useDebounce<string>(searchedValue, 1000)
@@ -28,8 +23,8 @@ export default function Home() {
     setSearchedValue(event.target.value)
   }
 
-  const handleSeeMoreButton = (index: number) => {
-    localStorage.setItem('@Coodeshchallenge:patientIndex', index.toString())
+  const handleMoreInfoButton = (index: number) => {
+    localStorage.setItem('@Coodeshchallenge:patientIndex', JSON.stringify(patients[index]))
   }
 
   const loadingOnChangeInput = () => {
@@ -50,25 +45,6 @@ export default function Home() {
 
   return (
     <>
-      <ModalPatient
-        isOpen={isOpen}
-        onClose={onClose}
-        address={`
-          ${patients.results[Number(localStorage.getItem('@Coodeshchallenge:patientIndex'))].location.street.number}, 
-          ${patients.results[Number(localStorage.getItem('@Coodeshchallenge:patientIndex'))].location.street.name} 
-          ${patients.results[Number(localStorage.getItem('@Coodeshchallenge:patientIndex'))].location.city}, 
-          ${patients.results[Number(localStorage.getItem('@Coodeshchallenge:patientIndex'))].location.state}, 
-          ${patients.results[Number(localStorage.getItem('@Coodeshchallenge:patientIndex'))].location.country}
-        `}
-        dob={patients.results[Number(localStorage.getItem('@Coodeshchallenge:patientIndex'))].dob.date}
-        email={patients.results[Number(localStorage.getItem('@Coodeshchallenge:patientIndex'))].email}
-        gender={patients.results[Number(localStorage.getItem('@Coodeshchallenge:patientIndex'))].gender}
-        name={`${patients.results[Number(localStorage.getItem('@Coodeshchallenge:patientIndex'))].name.first} ${patients.results[Number(localStorage.getItem('@Coodeshchallenge:patientIndex'))].name.last}`}
-        ID={patients.results[Number(localStorage.getItem('@Coodeshchallenge:patientIndex'))].id?.value}
-        nat={patients.results[Number(localStorage.getItem('@Coodeshchallenge:patientIndex'))].nat}
-        phone={patients.results[Number(localStorage.getItem('@Coodeshchallenge:patientIndex'))].phone}
-        picture={patients.results[Number(localStorage.getItem('@Coodeshchallenge:patientIndex'))].picture.large}
-      />
       <Header />
       <Flex
         as="main"
@@ -116,14 +92,13 @@ export default function Home() {
             />
             <Icon as={RiUserSearchFill} width="25px" height="25px" marginRight="16px" color="gray.500" />
           </Flex>
-          {isSearching ? <>
+          {(isSearching || patients == []) ? <>
             <Loading />
           </> : (filteredGender == "") ? <>
             <PatientTable
-              handleGenderFilter={() => {setFilteredGender("male")}}
               rowsPatientTable={
                 <>
-                  {patients.results.filter(patient => {
+                  {patients.filter(patient => {
                     if (debouncedValue == "") {
                       return patient
                     } else if ((`${patient.name.first} ${patient.name.last}`).toLowerCase().includes(debouncedValue.toLowerCase())) {
@@ -133,20 +108,21 @@ export default function Home() {
                     }
                   }).map(patient => (
                     <PatientTableRows
-                      key={patients.results.indexOf(patient) + 1}
+                      key={patients.indexOf(patient) + 1}
                       name={`${patient.name.first} ${patient.name.last}`}
                       dob={patient.dob.date}
                       gender={patient.gender}
                       children={
                         <Button
-                          leftIcon={<TiDocumentText size={18}/>}
+                          leftIcon={<TiDocumentText size={18} />}
                           fontSize="0.875rem"
                           variant="solid"
                           colorScheme="teal"
                           onClick={() => {
-                            handleSeeMoreButton(patients.results.indexOf(patient));
+                            handleMoreInfoButton(patients.indexOf(patient));
                             onOpen()
                           }}
+                          isLoading={isLoading}
                         >
                           more info
                         </Button>
@@ -157,11 +133,10 @@ export default function Home() {
               }
             />
           </> : <>
-          <PatientTable
-              handleGenderFilter={() => {setFilteredGender("male")}}
+            <PatientTable
               rowsPatientTable={
                 <>
-                  {patients.results.filter(patient => {
+                  {patients.filter(patient => {
                     if (filteredGender == "") {
                       return patient
                     } else if (patient.gender.toLowerCase() === filteredGender) {
@@ -169,18 +144,18 @@ export default function Home() {
                     }
                   }).map(patient => (
                     <PatientTableRows
-                      key={patients.results.indexOf(patient) + 1}
+                      key={patients.indexOf(patient) + 1}
                       name={`${patient.name.first} ${patient.name.last}`}
                       dob={patient.dob.date}
                       gender={patient.gender}
                       children={
                         <Button
-                          leftIcon={<TiDocumentText size={18}/>}
+                          leftIcon={<TiDocumentText size={18} />}
                           fontSize="0.875rem"
                           variant="solid"
                           colorScheme="teal"
                           onClick={() => {
-                            handleSeeMoreButton(patients.results.indexOf(patient));
+                            handleMoreInfoButton(patients.indexOf(patient));
                             onOpen()
                           }}
                         >
@@ -192,16 +167,40 @@ export default function Home() {
                 </>
               }
             />
-          </> }
-          <Button
-            marginY="50px"
-            leftIcon={<IoReloadOutline width="36px" height="36px" />}
-            colorScheme="teal"
-          >
-            Loading more...
-          </Button>
+          </>}
+          {page < 10 && <>
+            <Button
+              marginY="50px"
+              leftIcon={<IoReloadOutline width="36px" height="36px" />}
+              colorScheme="teal"
+              onClick={() => {
+                setPage(page + 1)
+              }}
+            >
+              Load More
+            </Button>
+          </>}
         </Flex>
       </Flex>
+      <ModalPatient
+        isOpen={isOpen}
+        onClose={onClose}
+        address={`
+          ${JSON.parse(localStorage.getItem('@Coodeshchallenge:patientIndex')).location.street.number}, 
+          ${JSON.parse(localStorage.getItem('@Coodeshchallenge:patientIndex')).location.street.name} 
+          ${JSON.parse(localStorage.getItem('@Coodeshchallenge:patientIndex')).location.city}, 
+          ${JSON.parse(localStorage.getItem('@Coodeshchallenge:patientIndex')).location.state}, 
+          ${JSON.parse(localStorage.getItem('@Coodeshchallenge:patientIndex')).location.country}
+        `}
+        dob={JSON.parse(localStorage.getItem('@Coodeshchallenge:patientIndex')).dob.date}
+        email={JSON.parse(localStorage.getItem('@Coodeshchallenge:patientIndex')).email}
+        gender={JSON.parse(localStorage.getItem('@Coodeshchallenge:patientIndex')).gender}
+        name={`${JSON.parse(localStorage.getItem('@Coodeshchallenge:patientIndex')).name.first} ${JSON.parse(localStorage.getItem('@Coodeshchallenge:patientIndex')).name.last}`}
+        ID={JSON.parse(localStorage.getItem('@Coodeshchallenge:patientIndex')).id?.value}
+        nat={JSON.parse(localStorage.getItem('@Coodeshchallenge:patientIndex')).nat}
+        phone={JSON.parse(localStorage.getItem('@Coodeshchallenge:patientIndex')).phone}
+        picture={JSON.parse(localStorage.getItem('@Coodeshchallenge:patientIndex')).picture.large}
+      />
     </>
   )
 }
